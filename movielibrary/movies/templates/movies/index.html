@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Library</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Movie Library</h1>
+
+        <!-- Register Form -->
+        <div id="registerSection">
+            <h2>Register</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+                <button type="button" class="btn btn-link" id="goToLogin">Already have an account? Login</button>
+            </form>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginSection" style="display: none;">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginUsername">Username:</label>
+                    <input type="text" id="loginUsername" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password:</label>
+                    <input type="password" id="loginPassword" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+        </div>
+
+        <!-- Home Page -->
+        <div id="homeSection" style="display: none;">
+            <h2>Home</h2>
+            <button class="btn btn-link" id="viewMovieLists">View My Movie Lists</button>
+            
+            <!-- Add New Movie List Form -->
+            <form id="createListForm">
+                <div class="form-group">
+                    <label for="listName">New List Name:</label>
+                    <input type="text" id="listName" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create List</button>
+            </form>
+
+            <form id="searchForm">
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+            <div id="searchResults"></div>
+        </div>
+
+        <!-- Movie Lists -->
+        <div id="movieListsSection" style="display: none;">
+            <h2>My Movie Lists</h2>
+            <button class="btn btn-link" id="backToHome">Back to Home</button>
+            <div id="movieLists"></div>
+
+            <!-- Update Movie List Form -->
+            <div id="updateListForm" style="display: none;">
+                <h3>Update Movie List</h3>
+                <form id="updateList">
+                    <div class="form-group">
+                        <label for="updateListName">List Name:</label>
+                        <input type="text" id="updateListName" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update List</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const registerForm = document.getElementById('registerForm');
+            const loginForm = document.getElementById('loginForm');
+            const createListForm = document.getElementById('createListForm');
+            const searchForm = document.getElementById('searchForm');
+            const updateListForm = document.getElementById('updateList');
+            const goToLogin = document.getElementById('goToLogin');
+            const viewMovieLists = document.getElementById('viewMovieLists');
+            const backToHome = document.getElementById('backToHome');
+            const registerSection = document.getElementById('registerSection');
+            const loginSection = document.getElementById('loginSection');
+            const homeSection = document.getElementById('homeSection');
+            const movieListsSection = document.getElementById('movieListsSection');
+            const updateListDiv = document.getElementById('updateListForm');
+            let token = '';
+
+            let currentListId = null;
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            const csrftoken = getCookie('csrftoken');
+
+            goToLogin.addEventListener('click', function () {
+                registerSection.style.display = 'none';
+                loginSection.style.display = 'block';
+            });
+
+            backToHome.addEventListener('click', function () {
+                movieListsSection.style.display = 'none';
+                homeSection.style.display = 'block';
+            });
+
+            // Register User
+            registerForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const username = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                axios.post('/api/register/', { username, email, password })
+                    .then(response => {
+                        alert('User registered successfully');
+                        registerForm.reset();
+                        registerSection.style.display = 'none';
+                        loginSection.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        alert('Registration failed');
+                    });
+            });
+
+            // Login User
+            loginForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+
+                axios.post('/api/login/', { username, password })
+                    .then(response => {
+                        token = response.data.access;
+                        alert('Login successful');
+                        loginForm.reset();
+                        loginSection.style.display = 'none';
+                        homeSection.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        alert('Login failed');
+                    });
+            });
+
+            // Create Movie List
+            createListForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const listName = document.getElementById('listName').value;
+
+                axios.post('/api/movie_lists/create/', { name: listName }, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'X-CSRFToken': csrftoken
+                    }
+                })
+                .then(response => {
+                    alert('Movie list created successfully');
+                    createListForm.reset();
+                    updateMovieLists();
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('Failed to create movie list');
+                });
+            });
+
+           // Search Movie
+            searchForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const title = document.getElementById('title').value;
+
+                axios.post('/api/search/', { title }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                .then(response => {
+                    const movie = response.data;
+                    const searchResults = document.getElementById('searchResults');
+                    searchResults.innerHTML = `
+                        <img src="${movie.Poster}" alt="${movie.Title}">
+                        <h3>${movie.Title}</h3>
+                        <p>${movie.Year}</p>
+                        <p>${movie.Plot}</p>
+                        <p>IMDb ID: ${movie.imdbID}</p>
+                        <button class="btn btn-primary" onclick="addToList('${movie.Title}', '${movie.Year}', '${movie.imdbID}')">Add to List</button>
+                    `;
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('Movie search failed');
+                });
+            });
+
+            //Add to List
+            //---------------
+       
+            window.addToList = function(title, year, imdbID) {
+                if (!currentListId) {
+                    alert('Please select a movie list first.');
+                    return;
+                }
+
+                axios.post(`/api/movie_lists/${currentListId}/add_movie/`, { title, year, imdbID }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                .then(response => {
+                    alert('Movie added to list successfully');
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('Failed to add movie to list');
+                });
+            }
+
+            // Update Movie Lists
+            // function updateMovieLists() {
+            //     axios.get('/api/movie_lists/', {
+            //         headers: { Authorization: `Bearer ${token}` }
+            //     })
+            //     .then(response => {
+            //         const movieLists = response.data;
+            //         const movieListsDiv = document.getElementById('movieLists');
+            //         movieListsDiv.innerHTML = '';
+
+            //         movieLists.forEach(list => {
+            //             const listElement = document.createElement('div');
+            //             listElement.innerHTML = `
+            //                 <h3>${list.name}</h3>
+            //                 <button class="btn btn-link" onclick="selectList(${list.id}, '${list.name}')">Select</button>
+            //                 <button class="btn btn-primary" onclick="showUpdateForm(${list.id}, '${list.name}')">Update</button>
+            //             `;
+            //             movieListsDiv.appendChild(listElement);
+            //         });
+            //     })
+            //     .catch(error => {
+            //         console.error(error);
+            //         alert('Failed to retrieve movie lists');
+            //     });
+            // }
+
+            // // Select Movie List
+            // window.selectList = function(listId, listName) {
+            //     currentListId = listId;
+            //     alert(`Selected list ID: ${listId}, List Name: ${listName}`);
+            // };
+
+            // // Show Update Form
+            // window.showUpdateForm = function(listId, listName) {
+            //     currentListId = listId;
+            //     document.getElementById('updateListName').value = listName;
+            //     updateListDiv.style.display = 'block';
+            // };
+
+            // // Update Movie List
+            // updateListForm.addEventListener('submit', function(event) {
+            //     event.preventDefault();
+            //     const updatedListName = document.getElementById('updateListName').value;
+
+            //     axios.post(`/api/movie_lists/${currentListId}/update/`, { name: updatedListName }, {
+            //         headers: {
+            //             Authorization: `Bearer ${token}`,
+            //             'X-CSRFToken': csrftoken
+            //         }
+            //     })
+            //     .then(response => {
+            //         alert('Movie list updated successfully');
+            //         updateListDiv.style.display = 'none';
+            //         updateMovieLists();
+            //     })
+            //     .catch(error => {
+            //         console.error(error);
+            //         alert('Failed to update movie list');
+            //     });
+            // });
+
+            // viewMovieLists.addEventListener('click', function () {
+            //     homeSection.style.display = 'none';
+            //     movieListsSection.style.display = 'block';
+            //     updateMovieLists();
+            // });
+
+            function updateMovieLists() {
+        axios.get('/api/movie_lists/', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(response => {
+            const movieLists = response.data;
+            const movieListsDiv = document.getElementById('movieLists');
+            movieListsDiv.innerHTML = '';
+
+            movieLists.forEach(list => {
+                const listElement = document.createElement('div');
+                listElement.innerHTML = `
+                    <h3>${list.name}</h3>
+                    <button class="btn btn-link" onclick="selectList(${list.id}, '${list.name}')">Select</button>
+                    <button class="btn btn-primary" onclick="showUpdateForm(${list.id}, '${list.name}')">Update</button>
+                    <button class="btn btn-link" onclick="viewMoviesInList(${list.id})">View Movies</button>
+                    <div id="moviesList${list.id}" style="display: none;"></div>
+                `;
+                movieListsDiv.appendChild(listElement);
+            });
+        })
+        .catch(error => {
+            console.error(error);
+            alert('Failed to retrieve movie lists');
+        });
+    }
+
+    // View Movies in List
+    window.viewMoviesInList = function(listId) {
+        const moviesDiv = document.getElementById(`moviesList${listId}`);
+        if (moviesDiv.style.display === 'none') {
+            axios.get(`/api/movie_lists/${listId}/`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            .then(response => {
+                const movieList = response.data;
+                moviesDiv.innerHTML = `<h4>Movies in ${movieList.name}</h4>`;
+                movieList.movies.forEach(movie => {
+                    const movieElement = document.createElement('div');
+                    movieElement.innerHTML = `
+                        <p>${movie.title} (${movie.year}) - IMDb ID: ${movie.imdb_id}</p>
+                    `;
+                    moviesDiv.appendChild(movieElement);
+                });
+                moviesDiv.style.display = 'block';
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Failed to retrieve movie list');
+            });
+        } else {
+            moviesDiv.style.display = 'none';
+        }
+    }
+
+    // Select Movie List
+    window.selectList = function(listId, listName) {
+        currentListId = listId;
+        alert(`Selected list ID: ${listId}, List Name: ${listName}`);
+    };
+
+    // Show Update Form
+    window.showUpdateForm = function(listId, listName) {
+        currentListId = listId;
+        document.getElementById('updateListName').value = listName;
+        updateListDiv.style.display = 'block';
+    };
+
+    // Update Movie List
+    updateListForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const updatedListName = document.getElementById('updateListName').value;
+
+        axios.post(`/api/movie_lists/${currentListId}/update/`, { name: updatedListName }, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => {
+            alert('Movie list updated successfully');
+            updateListDiv.style.display = 'none';
+            updateMovieLists();
+        })
+        .catch(error => {
+            console.error(error);
+            alert('Failed to update movie list');
+        });
+    });
+
+    viewMovieLists.addEventListener('click', function () {
+        homeSection.style.display = 'none';
+        movieListsSection.style.display = 'block';
+        updateMovieLists();
+    });
+        });
+    </script>
+    
+    
+</body>
+</html>
