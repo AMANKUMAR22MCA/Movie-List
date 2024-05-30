@@ -89,6 +89,7 @@ Movie Library is a web application that allows users to create and manage their 
 - **Create Movie List**: `/api/movie_lists/` (POST)
 - **Get Movie Lists**: `/api/movie_lists/` (GET)
 - **Add Movie to List**: `/api/movie_lists/<list_id>/add_movie/` (POST)
+- **FRONTEND**: `http://127.0.0.1:8000/api/home/` 
 
 ## Usage
 
